@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<style>
+		[v-cloak] {
+			display: none;
+		}
+		th,td {
+			border:1px solid #ccc;
+			height: 30px;
+		}
+	</style>
+</head>
+<body>
+	<div id="app">
+		<div>
+			<input type="text" v-model='name'>
+			<input type="text" v-model='author'>
+			<input type="text" v-model='description'>
+			<input type="button" value="提交" @click='addOrEditBrand'>
+		</div>
+		<table style='width:800px;border:1px solid #ccc;border-collapse: collapse;text-align:center;margin-top:10px;'>
+			<tr>
+				<th>编号</th>
+				<th>名称</th>
+				<th>作者</th>
+				<th>描述</th>
+				<th>操作</th>
+			</tr>
+			<tr v-for='item in list' v-cloak>
+				<td v-text='item.id'></td>
+				<td v-text='item.name'></td>
+				<td v-text='item.author'></td>
+				<td v-text='item.description'></td>
+				<td>
+					<a href="javascript:;" @click='getDataByid(item.id)'>修改</a>
+					<a href="javascript:;" @click='deleteBrand(item.id)'>删除</a>
+				</td>
+			</tr>
+		</table>
+	</div>
+  <script src="https://cdn.bootcss.com/vue/2.5.13/vue.min.js"></script>
+  <script src="https://cdn.bootcss.com/axios/0.17.1/axios.min.js"></script>
+	<script>
+		//第三方数据处理库：underscore、lodash 
+		new Vue({
+			el:'#app',
+			data:{
+				id:'',
+				name:'',
+				author:'',
+				description:'',
+				list:[]
+			},
+			methods:{
+				addOrEditBrand:function(){
+					var that=this;
+					// 传统表单
+					var params = new URLSearchParams();
+					
+					params.append('name', this.name);
+					params.append('author', this.author);
+					params.append('description', this.description);
+					if(this.id){
+						// 编辑操作
+						params.append('id', this.id);
+						axios.put('/books/book',params)
+							 .then(function(data){
+							 	if(data.status===200||data.data.flag===1){
+							 		that.initList();
+							 		// 必须清空id 防止下次输入改变上次列表的值
+							 		// that.id=''; 移到底部了
+							 	}
+							 })
+					}else {
+						// 提交数据 添加表单
+						// 设置提交参数，保证以form表单方式提交
+            			// application/x-www-form-urlencoded
+            			// application/json
+            			// 调用接口
+						if(this.name&&this.author&&this.description){
+							axios.post('/books/book', params)
+							.then(function(data){
+						 	// console.log(data);
+						 	if(data.status===200){
+						 		that.initList();
+						 	}
+						 })
+						}
+					}
+					//提交完数据清空
+					this.id='';
+					this.name='';
+					this.author='';
+					this.description='';
+
+				},
+				// 查询表单调用接口逻辑
+				getDataByid:function(id){
+					// 根据id查询数据
+					var that=this;
+					axios.get('/books/book/'+id)
+						 .then(function(data){
+						 	// 获取数据并填充表单
+						 	// console.log(data);
+						 	if(data.status===200){
+						 		// 显示在输入框内
+						 		that.id=data.data.id;
+						 		that.name=data.data.name;
+						 		that.author=data.data.author;
+						 		that.description=data.data.description;
+						 	}
+						 })
+
+				},
+				// 删除逻辑
+				deleteBrand:function(id){
+					// 调用接口删除
+					var that=this;
+					axios.delete('/books/book/'+id)
+						 .then(function(data){
+						 	// console.log(data);
+						 	if(data.data.flag===1){
+						 		// 刷新列表数据
+						 		that.initList();
+						 	}
+						 })
+				},
+				//封装从后台接口获取数据的函数
+				initList:function(){
+					let that=this;
+					axios.get('/books')
+						 .then(function(data){
+						 	console.log(data);
+						 	if(data.status===200){
+						 		that.list=data.data;
+						 	}
+						 })
+				}
+
+			},
+			mounted:function(){
+				 // 调用后台接口，所有的资源准备就绪之后请求后台数据
+				this.initList();
+			}
+
+		})
+	</script>
+</body>
+</html>
